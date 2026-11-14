@@ -1,0 +1,10 @@
+# HTML reports GitWhy writes
+gitwhy-report.html
+*.gitwhy.html
+
+# Python
+__pycache__/
+*.pyc
+
+# Fixture repos built by tests/run_tests.py
+tests/_fixtures/
