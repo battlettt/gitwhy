@@ -16,7 +16,8 @@ _CSS = """
 body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
 main{max-width:960px;margin:0 auto;padding:32px 16px 64px}
 h1{font-size:24px;margin:0 0 4px}h2{font-size:16px;margin:32px 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
-.sub{color:var(--muted);margin:0 0 20px}
+.sub{color:var(--muted);margin:0 0 20px;overflow-wrap:anywhere}
+h1{overflow-wrap:anywhere}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:0 0 12px}
 code,pre,.sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
 .sha{background:var(--code);padding:1px 6px;border-radius:4px;white-space:nowrap}

@@ -3,14 +3,15 @@
 import textwrap
 
 WIDTH = 78
+MAX_CODE_LINES = 30
 
 
 def _rule(title):
     return "\n== %s %s" % (title, "=" * max(3, WIDTH - len(title) - 4))
 
 
-def _wrap(text, indent="  "):
-    return "\n".join(textwrap.fill(p, WIDTH, initial_indent=indent, subsequent_indent=indent) if p.strip()
+def _wrap(text, indent="  ", hang=""):
+    return "\n".join(textwrap.fill(p, WIDTH, initial_indent=indent, subsequent_indent=indent + hang) if p.strip()
                      else indent.rstrip() for p in text.split("\n"))
 
 
@@ -32,7 +33,8 @@ def story_section(story):
     out.append("Introduced in %s by %s <%s> on %s" % (c.short, c.author, c.email, c.iso[:16]))
     out.append("  as %s of %s [%s %s]" % (o.span, o.path, c.short, o.span))
     out.append("  message:")
-    out.append(_wrap(c.message or "(empty message)", "    | "))
+    for ln in (c.message or "(empty message)").split("\n"):
+        out.append(("    | " + ln).rstrip())  # keep the author's own line breaks
     current = story.current_shas
     if current and (current[0] != c.sha or len(current) > 1):
         parts = []
@@ -43,9 +45,18 @@ def story_section(story):
     out.append(_rule("CODE AT %s" % t.rev))
     lo = max(1, t.start - story.context)
     hi = min(len(t.lines), t.end + story.context)
-    for n in range(lo, hi + 1):
+    shown = list(range(lo, hi + 1))
+    if t.end - t.start + 1 > MAX_CODE_LINES:
+        head_end = t.start + MAX_CODE_LINES - 6
+        tail_start = t.end - 4
+        shown = [n for n in shown if n < head_end or n > tail_start - 1]
+    prev = None
+    for n in shown:
+        if prev is not None and n != prev + 1:
+            out.append("  %5s | ... %d lines not shown (the HTML report has them all)" % ("", n - prev - 1))
         mark = ">" if t.start <= n <= t.end else " "
         out.append("%s %5d | %s" % (mark, n, t.lines[n - 1]))
+        prev = n
     out.append(_rule("TIMELINE (%d commit%s)" % (len(story.timeline), "" if len(story.timeline) == 1 else "s")))
     for i, e in enumerate(story.timeline):
         c = e.commit
@@ -94,7 +105,7 @@ def heat_section(story):
     out.append(_wrap("Verdict %s because %s." % (h.verdict, h.reason)))
     out.append("  Evidence [%s]:" % story.target.span)
     for e in h.evidence:
-        out.append(_wrap("- " + e, "    "))
+        out.append(_wrap("- " + e, "    ", "  "))
     for p, ln, text in story.references[:5]:
         out.append("      ref %s:%d  %s" % (p, ln, text[:50]))
     return out
@@ -113,7 +124,8 @@ def story_text(story, sections=("story", "company", "heat"), top=10):
 
 def filemap_text(fm):
     t = fm.target
-    out = ["GitWhy: heat map of %s at %s (%d lines, %d regions)" % (t.path, t.rev, len(t.lines), len(fm.regions))]
+    out = ["GitWhy: heat map of %s at %s (%d lines, %d region%s)" % (
+        t.path, t.rev, len(t.lines), len(fm.regions), "" if len(fm.regions) == 1 else "s")]
     out.append("  CHURN %d%%   NEW %d%%   SETTLED %d%%   OLD %d%%   (share of lines)" % tuple(
         round(fm.share(tag) * 100) for tag in ("CHURN", "NEW", "SETTLED", "OLD")))
     out.append("")

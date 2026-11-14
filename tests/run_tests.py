@@ -1022,6 +1022,33 @@ def test_runs_on_its_own_repo():
     assert "== TIMELINE" in proc.stdout and "== HEAT" in proc.stdout
 
 
+def test_cli_keeps_message_line_breaks():
+    code, out, _ = run_cli("story", P("main", "core/app.py"), "--line", "12", "--no-html")
+    assert code == 0
+    assert "    | The billing team needs totals scaled\n    | before export." not in out  # origin is c1
+    assert "    | Initial import\n    |\n    | Start the engine module." in out
+
+
+def test_cli_long_function_is_trimmed_in_terminal():
+    r = R["main"]
+    body = "def big():\n" + "".join("    x%d = %d\n" % (i, i) for i in range(60)) + "    return 0\n"
+    write(r, "big.py", body)
+    sha = commit(r, "Add a long function", "2026-10-30")
+    try:
+        code, out, _ = run_cli("story", P("main", "big.py"), "--function", "big", "--no-html")
+        assert code == 0 and "lines not shown (the HTML report has them all)" in out
+        assert ">     1 | def big():" in out and ">    62 |     return 0" in out
+        s = story_for(P("main", "big.py"), function="big")
+        assert "x40 = 40" in story_html(s)
+    finally:
+        git(r, "reset", "-q", "--hard", sha + "^")
+
+
+def test_cli_file_mode_region_plural():
+    code, out, _ = run_cli("file", P("main", "README.md"), "--no-html")
+    assert code == 0 and "(1 lines, 1 region)" in out
+
+
 def test_run_git_error_message():
     try:
         run_git(R["main"], "rev-parse", "--verify", "nope-nope")
